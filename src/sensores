@@ -1,0 +1,38 @@
+#include <iostream>
+#include <string>
+#include <Arduino.h>
+
+using namespace std;
+
+class Sensores {
+    public:
+        string localizacao = "";
+        float leitura = 0;
+        string unidade_de_medida = "";
+};
+
+class DS18B20 : public Sensores {
+    public:
+        int pinoDigital = 0; 
+        uint8_t endereco[8]; 
+};
+
+class LDR : public Sensores {
+    public:
+        int pinoAnalogico = 0;
+        int valorMinimo = 0;
+        int valorMaximo = 4095;
+};
+
+class DHT22 : public Sensores {
+    public:
+        int pinoDigital = 0;
+        float umidade = 0; 
+};
+
+class TCRT5000 : public Sensores {
+    public:
+        int pinoDigital = 0;
+        unsigned long contadorPulsos = 0;
+        unsigned long ultimoTempoMedicao = 0;
+};
