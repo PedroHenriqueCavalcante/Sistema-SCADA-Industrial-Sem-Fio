@@ -1,38 +1,99 @@
 #include <iostream>
+#include <vector>
 #include <string>
-#include <Arduino.h>
+#include <Arduino.h> 
 
 using namespace std;
 
 class Sensores {
+    protected:
+        string id;
+        string localizacao;
+        float leitura; 
+        string unidade;
+
     public:
-        string localizacao = "";
-        float leitura = 0;
-        string unidade_de_medida = "";
+        Sensores(string _id, string _loc, string _uni) {
+            id = _id;
+            localizacao = _loc;
+            unidade = _uni;
+            leitura = 0.0;
+        }
+
+        virtual void ler(){
+        
+        } 
+
+        float getValor() { 
+            return leitura; 
+        }
+
+        string getId() { 
+            return id; 
+        }
 };
 
-class DS18B20 : public Sensores {
+
+class DS18B20:public Sensores {
+    private:
+        int pinoDigital;
+
     public:
-        int pinoDigital = 0; 
-        uint8_t endereco[8]; 
+        DS18B20(string _id, string _loc, int _pino):Sensores(_id, _loc, "°C") {
+            pinoDigital = _pino;
+        }
+
+        void ler() override {
+            
+        }
 };
 
 class LDR : public Sensores {
-    public:
-        int pinoAnalogico = 0;
-        int valorMinimo = 0;
-        int valorMaximo = 4095;
-};
+    private:
+        int pinoAnalogico;
 
-class DHT22 : public Sensores {
     public:
-        int pinoDigital = 0;
-        float umidade = 0; 
+        LDR(string _id, string _loc, int _pino):Sensores(_id, _loc, "%") {
+            pinoAnalogico = _pino;
+        }
+
+        void ler() override {
+            
+        }
 };
 
 class TCRT5000 : public Sensores {
+    private:
+        int pinoDigital;
+        
     public:
-        int pinoDigital = 0;
-        unsigned long contadorPulsos = 0;
-        unsigned long ultimoTempoMedicao = 0;
+
+        TCRT5000(string _id, string _loc, int _pino):Sensores(_id, _loc, "RPM") {
+            pinoDigital = _pino;
+        }
+
+        void ler() override {
+            
+        }
+};
+
+class DHT22 : public Sensores {
+    private:
+        int pinoDigital;
+        float umidade; 
+
+    public:
+        DHT22(string _id, string _loc, int _pino) 
+          : Sensores(_id, _loc, "°C") { // A unidade principal ainda é C
+            pinoDigital = _pino;
+            umidade = 0.0;
+        }
+
+        void ler() override {
+            
+        }
+
+        string getRelatorio() override {
+          
+        }
 };
