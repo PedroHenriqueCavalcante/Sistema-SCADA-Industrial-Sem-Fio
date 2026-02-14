@@ -1,5 +1,5 @@
-#ifndef RADIO_TRANSMISSOR_H
-#define RADIO_TRANSMISSOR_H
+#ifndef COMUNICACAO_WIRELESS_H
+#define COMUNICACAO_WIRELESS_H
 
 #include <Arduino.h>
 #include <SPI.h>
