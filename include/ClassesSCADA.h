@@ -1,0 +1,181 @@
+#ifndef CLASSES_SCADA_H
+#define CLASSES_SCADA_H
+
+#include <Arduino.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <DHT.h>
+
+class Sensores {
+    protected:
+        String id; //Nome do sensor
+        String localizacao; //Onde ele está localizado
+        float leitura; //Valor da leitura dele (temperatura, umidade, RPM, etc.)
+        String unidade; //Unidade de medida da leitura (C, %, RPM, etc.)
+
+    public:
+        Sensores(String _id, String _loc, String _uni) {
+            id = _id;
+            localizacao = _loc;
+            unidade = _uni;
+            leitura = 0.0;
+        }
+
+        virtual void ler(){
+            //Em branco apenas para ser sobrescrito pelas subclasses
+        }
+
+        // Método virtual: Pode ser sobrescrito (pelo DHT, por exemplo)
+        virtual String getRelatorio() {
+            return "[" + id + "] " + localizacao + ": " + String(leitura) + " " + unidade;
+        }
+
+        float getValor() { 
+            return leitura; 
+        }
+
+        String getId() { 
+            return id; 
+        }
+};
+
+//---------------------------------------------DS18B20---------------------------------------------------------------------------------------------------
+
+class DS18B20:public Sensores {
+    private:
+        DallasTemperature* _dallas; // Ponteiro para o controlador
+        DeviceAddress _endereco;    // Endereço específico deste sensor
+
+    public:
+
+        DS18B20(String _id, String _loc, DallasTemperature* dallas, DeviceAddress enderecoFisico);
+
+        void ler() override;
+};
+
+//Método construtor da classe
+DS18B20::DS18B20(String _id, String _loc, DallasTemperature* dallas, DeviceAddress enderecoFisico):Sensores(_id, _loc, "C") {
+
+    _dallas = dallas;
+    memcpy(_endereco, enderecoFisico, 8); // Copia o endereço recebido para a variável interna
+}
+
+//Método override de leitura
+void DS18B20::ler() {
+    _dallas->requestTemperaturesByAddress(_endereco);
+    float tempC = _dallas->getTempC(_endereco);
+
+    if(tempC == DEVICE_DISCONNECTED_C) { // Verifica se houve erro de leitura (-127)
+        Serial.println("Erro: Sensor " + id + " desconectado!");
+    } 
+    
+    else {
+        leitura = tempC;
+    }
+}
+
+//---------------------------------------------LDR-------------------------------------------------------------------------------------------------------
+
+class LDR:public Sensores {
+    private:
+        int pinoAnalogico;
+
+    public:
+        LDR(String _id, String _loc, int _pino);
+
+        void ler() override;
+};
+
+//Método construtor da classe
+LDR::LDR(String _id, String _loc, int _pino):Sensores(_id, _loc, "%") {
+    pinoAnalogico = _pino;
+    pinMode(pinoAnalogico, INPUT);
+}
+
+//Método override de leitura
+void LDR::ler() {
+
+    int valorBruto = analogRead(pinoAnalogico);
+    // Converte 0-1023 (analógico) para 0-100% (porcentagem)
+    // LDR: Quanto mais luz, menor a resistência (depende do circuito)
+    // Assumindo pull-down:
+    leitura = map(valorBruto, 0, 1023, 0, 100);
+}
+
+//---------------------------------------------TCRT5000---------------------------------------------------------------------------------------------------
+
+class TCRT5000 : public Sensores {
+    private:
+        int pinoDigital;
+        
+    public:
+
+        TCRT5000(String _id, String _loc, int _pino);
+        void ler() override;
+};
+
+//Método construtor da classe
+TCRT5000::TCRT5000(String _id, String _loc, int _pino):Sensores(_id, _loc, "RPM") {
+    pinoDigital = _pino;
+    pinMode(pinoDigital, INPUT);
+}
+
+//Método override de leitura
+void TCRT5000::ler() {
+    // Lógica Simplificada para TP (sem interrupção):
+    // Lê o pulso atual. pulseIn espera o pino ir de LOW para HIGH.
+    // Timeout de 100ms para não travar o Arduino
+    unsigned long duracao = pulseIn(pinoDigital, HIGH, 100000); 
+    
+    if (duracao > 0) {
+        // Conversão básica de tempo de pulso para RPM (aproximada)
+        // RPM = 60 segundos / tempo de uma volta (em segundos)
+        // Exemplo genérico (AJUSTAR DEPOIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)<<<-----------
+        leitura = 60000000.0 / (duracao * 2); // Multiplicador fictício
+    } else {
+        leitura = 0; // Cooler parado
+    }
+}
+
+//---------------------------------------------DHT--------------------------------------------------------------------------------------------------------
+
+class SensorDHT:public Sensores {
+    private:
+        DHT* _dht; // Ponteiro para o objeto da biblioteca
+        float umidade; 
+
+    public:
+        
+        SensorDHT(String _id, String _loc, DHT* dhtObj); // Recebe o objeto DHT já configurado no main
+        void ler() override;
+        
+        // <<< AQUI ESTÁ A MUDANÇA: Declaramos que vamos sobrescrever o relatório >>>
+        String getRelatorio() override; 
+};
+
+//Método construtor da classe
+SensorDHT::SensorDHT(String _id, String _loc, DHT* dhtObj):Sensores(_id, _loc, "C") {
+    _dht = dhtObj;
+    umidade = 0.0;
+}
+
+void SensorDHT::ler() {
+
+    // O DHT lê devagar, ideal é não chamar toda hora
+    float t = _dht->readTemperature();
+    float h = _dht->readHumidity();
+    
+    if (isnan(t) || isnan(h)) { // Verifica se a leitura é NaN (Not a Number = erro de leitura)
+        Serial.println("Falha ao ler DHT!");
+    } else {
+        leitura = t; // Salva temp na variável da mãe
+        umidade = h; // Salva umidade na variável própria
+    }
+}
+
+String SensorDHT::getRelatorio() { //Implementação da sobrescrita do relatório
+    // Retorna string formatada com Temp E Umidade
+    return "[" + id + "] " + localizacao + ": " + String(leitura) + "C / " + String(umidade) + "%";
+}
+
+#endif
