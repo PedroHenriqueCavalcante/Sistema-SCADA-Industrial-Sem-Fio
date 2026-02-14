@@ -1,0 +1,87 @@
+#include <ESP8266WiFi.h>
+#include <SoftwareSerial.h>
+#include <LiquidCrystal.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+LiquidCrystal lcd(12, 15, 0, 2, 13, 16); 
+SoftwareSerial linkArduino(14, 12);
+
+struct __attribute__((packed)) DadosSCADA {
+  uint8_t header;
+  uint8_t dia, mes, hora, minuto;
+  int16_t tempDHT;
+  uint8_t humDHT;
+  int16_t tempDS;
+  uint8_t luz1, luz2, luz3;
+};
+
+DadosSCADA pacote;
+int grafico[128];
+
+void setup() {
+  Serial.begin(115200);
+  linkArduino.begin(9600);
+  lcd.begin(16, 2);
+  
+  if(!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) Serial.println("Erro OLED");
+  oled.clearDisplay();
+  oled.display();
+
+  for(int i=0; i<128; i++) grafico[i] = 63;
+  
+  lcd.print("Aguardando...");
+}
+
+void loop() {
+  if (linkArduino.available() > 0) {
+    if (linkArduino.read() == 0x42) {
+      delay(15);
+      if (linkArduino.available() >= (sizeof(DadosSCADA) - 1)) {
+        linkArduino.readBytes(((byte*)&pacote) + 1, sizeof(DadosSCADA) - 1);
+        
+        float tAmbiente = pacote.tempDHT / 10.0;
+        float tMotor = pacote.tempDS / 10.0;
+        int luzMedia = (pacote.luz1 + pacote.luz2 + pacote.luz3) / 3;
+
+        lcd.clear();
+        lcd.setCursor(0,0);
+        if(pacote.dia<10) lcd.print('0'); lcd.print(pacote.dia); lcd.print('/');
+        if(pacote.mes<10) lcd.print('0'); lcd.print(pacote.mes); lcd.print(' ');
+        if(pacote.hora<10) lcd.print('0'); lcd.print(pacote.hora); lcd.print(':');
+        if(pacote.minuto<10) lcd.print('0'); lcd.print(pacote.minuto);
+        
+        lcd.setCursor(0,1);
+        lcd.print("Amb:"); lcd.print(tAmbiente, 1); 
+        lcd.print("C U:"); lcd.print(pacote.humDHT); lcd.print("%");
+
+        for(int i=0; i<127; i++) grafico[i] = grafico[i+1];
+        int ponto = map((int)tMotor, 20, 60, 63, 16);
+        if(ponto < 16) ponto = 16; if(ponto > 63) ponto = 63;
+        grafico[127] = ponto;
+
+        oled.clearDisplay();
+        
+        oled.setTextSize(1);
+        oled.setTextColor(SSD1306_WHITE);
+        oled.setCursor(0,0);
+        oled.print("L1:"); oled.print(pacote.luz1);
+        oled.print(" L2:"); oled.print(pacote.luz2);
+        oled.print(" L3:"); oled.print(pacote.luz3);
+        
+        oled.setCursor(0, 16);
+        oled.print("Motor: "); oled.print(tMotor, 1); oled.print(" C");
+
+        for(int i=0; i<127; i++) {
+          oled.drawLine(i, grafico[i], i+1, grafico[i+1], SSD1306_WHITE);
+        }
+        
+        oled.display();
+      }
+    }
+  }
+}

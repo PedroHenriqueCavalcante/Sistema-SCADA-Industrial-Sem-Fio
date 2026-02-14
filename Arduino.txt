@@ -1,0 +1,100 @@
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <DHT.h>
+#include <SoftwareSerial.h>
+#include <SPI.h>
+#include <SD.h>
+#include <Wire.h>
+#include "RTClib.h"
+#include <avr/wdt.h>
+
+#define SD_CS 10
+#define DS_PIN 8
+#define DHTPIN 4
+#define LDR_PIN A0
+#define PNP_PIN 9
+#define LED_STATUS 13
+
+struct __attribute__((packed)) DadosSCADA {
+  uint8_t header = 0x42;
+  uint8_t dia, mes, hora, minuto;
+  int16_t tempDHT;
+  uint8_t humDHT;
+  int16_t tempDS;
+  uint8_t luzPercent;
+};
+
+RTC_DS3231 rtc;
+OneWire oneWire(DS_PIN);
+DallasTemperature sensors(&oneWire);
+DHT dht(DHTPIN, DHT22);
+SoftwareSerial linkWemos(7, 3);
+DadosSCADA pacote;
+
+void setup() {
+  Serial.begin(115200);
+  linkWemos.begin(9600);
+  pinMode(PNP_PIN, OUTPUT);
+  pinMode(LED_STATUS, OUTPUT);
+  digitalWrite(PNP_PIN, HIGH);
+
+  sensors.begin();
+  dht.begin();
+  
+  bool rtcOk = rtc.begin();
+  bool sdOk = SD.begin(SD_CS);
+  
+  if(!rtcOk) Serial.println(F("Erro RTC"));
+  if(!sdOk) Serial.println(F("Erro SD"));
+
+  wdt_enable(WDTO_4S); 
+}
+
+void loop() {
+  wdt_reset();
+
+  static unsigned long tAnterior = 0;
+  
+  if (millis() - tAnterior >= 2000) {
+    tAnterior = millis();
+    digitalWrite(LED_STATUS, !digitalRead(LED_STATUS));
+
+    DateTime agora = rtc.now();
+    pacote.dia = agora.day();
+    pacote.mes = agora.month();
+    pacote.hora = agora.hour();
+    pacote.minuto = agora.minute();
+
+    float tDHT = dht.readTemperature();
+    float hDHT = dht.readHumidity();
+    if (isnan(tDHT)) tDHT = 0.0;
+    if (isnan(hDHT)) hDHT = 0.0;
+    
+    pacote.tempDHT = (int16_t)(tDHT * 10);
+    pacote.humDHT = (uint8_t)hDHT;
+
+    sensors.requestTemperatures();
+    float tDS = sensors.getTempCByIndex(0);
+    if (tDS < -100) tDS = 0.0;
+    pacote.tempDS = (int16_t)(tDS * 10);
+
+    int luzRaw = analogRead(LDR_PIN);
+    pacote.luzPercent = map(luzRaw, 0, 1023, 0, 100);
+
+    if (tDS >= 35.0) digitalWrite(PNP_PIN, LOW);
+    else digitalWrite(PNP_PIN, HIGH);
+
+    File logFile = SD.open("LOG.CSV", FILE_WRITE);
+    if (logFile) {
+      logFile.print(pacote.dia); logFile.print('/');
+      logFile.print(pacote.hora); logFile.print(':');
+      logFile.print(pacote.minuto); logFile.print(',');
+      logFile.print(tDS); logFile.print(',');
+      logFile.println(pacote.tempDHT);
+      logFile.close();
+    }
+
+    linkWemos.write((byte*)&pacote, sizeof(DadosSCADA));
+    Serial.println(F("Pacote Enviado"));
+  }
+}
