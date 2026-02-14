@@ -154,28 +154,31 @@ class SensorDHT:public Sensores {
 };
 
 //Método construtor da classe
-SensorDHT::SensorDHT(String _id, String _loc, DHT* dhtObj):Sensores(_id, _loc, "C") {
+SensorDHT::SensorDHT(String _id, String _loc, DHT* dhtObj):Sensores(_id, _loc, "%") {
     _dht = dhtObj;
     umidade = 0.0;
 }
 
 void SensorDHT::ler() {
-
     // O DHT lê devagar, ideal é não chamar toda hora
     float t = _dht->readTemperature();
     float h = _dht->readHumidity();
     
-    if (isnan(t) || isnan(h)) { // Verifica se a leitura é NaN (Not a Number = erro de leitura)
+    if (isnan(t) || isnan(h)) { 
         Serial.println("Falha ao ler DHT!");
     } else {
-        leitura = t; // Salva temp na variável da mãe
-        umidade = h; // Salva umidade na variável própria
+        // CORREÇÃO LÓGICA:
+        // Como o rádio só envia a variável 'leitura', salvamos a UMIDADE (h) nela.
+        // A temperatura (t) guardamos na variável auxiliar 'umidade' só para o relatório.
+        leitura = h; 
+        umidade = t; 
     }
 }
 
-String SensorDHT::getRelatorio() { //Implementação da sobrescrita do relatório
-    // Retorna string formatada com Temp E Umidade
-    return "[" + id + "] " + localizacao + ": " + String(leitura) + "C / " + String(umidade) + "%";
+String SensorDHT::getRelatorio() { 
+    // MUDANÇA: Ajustei a ordem para imprimir certo, já que invertemos as variáveis acima
+    // Agora: 'umidade' guarda a Temp (C) e 'leitura' guarda a Umidade (%)
+    return "[" + id + "] " + localizacao + ": " + String(umidade) + "C / " + String(leitura) + "%";
 }
 
 #endif
