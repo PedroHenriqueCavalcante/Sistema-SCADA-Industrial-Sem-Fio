@@ -2,13 +2,14 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include "ComunicacaoWireless.h"
 #ifdef CD
 #undef CD
 #endif
+#include "ComunicacaoWireless.h"
 #include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 #include "Telas.h"
+#include "Armazenamento.h"
 
 
 //CONFIGURAÇÕES DO WI-FI
@@ -20,14 +21,20 @@ const char DEVICE_LOGIN_NAME[]  = "COPIE_DO_SITE_DEVICE_ID";
 const char DEVICE_KEY[]         = "COPIE_DO_SITE_SECRET_KEY";
 
 
-//Configurações do rádio [CE no D2 (GPIO4), CSN no D8 (GPIO15)]
+// CE no D4 (GPIO2) -> Para não brigar com o I2C (que usa D2)
 #define CE_PIN 2  
-#define CSN_PIN 15
+// CSN no D8 (GPIO15) -> Padrão SPI
+#define CSN_PIN 15 
+
+// --- 2. Cartão SD (SPI) ---
+// CS no D0 (GPIO16) -> Pino exclusivo para o Cartão
+#define SD_CS_PIN 16
 
 RF24 radio(CE_PIN, CSN_PIN);
 const uint64_t enderecoPipe = 0x1234567890LL;
 
 GerenciadorDeTelas telas;
+GerenciadorDeArmazenamento sdCard(SD_CS_PIN);
 
 //O nome tem que estar igual no Arduino Cloud
 float temp_interna;
@@ -60,6 +67,7 @@ void setup() {
   Serial.println("\nIniciando o Receptor SCADA");
 
   telas.iniciar();
+  sdCard.iniciar();
 
   // A. Inicia Arduino Cloud
   initProperties();
@@ -96,8 +104,8 @@ void loop() {
 
     Serial.print("Recebido [" + id + "]: " + String(valor));
 
-    telas.atualizarLCD(id, valor);
-    telas.atualizarOLED(id, valor);
+    telas.atualizar(id, valor);
+    sdCard.salvarDado(id, valor);
     
     if (id == "Temp_Interna") {
         temp_interna = valor;
