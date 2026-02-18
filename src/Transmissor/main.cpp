@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "ClassesSCADA.h"
 #include "ComunicacaoWireless.h"
+#include "Seguranca.h"
 
 // Pinos dos Sensores
 #define PINO_ONE_WIRE  4  // Fio de dados dos DS18B20
@@ -14,6 +15,8 @@
 #define PINO_CSN 10
 
 #define TIPO_DHT DHT22 
+
+Watchdog dog; 
 
 OneWire oneWire(PINO_ONE_WIRE);
 DallasTemperature sensors(&oneWire);
@@ -31,7 +34,8 @@ Sensores* listaSensores[6];
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("INICIANDO SISTEMA SCADA");
+  dog.iniciar();
+  Serial.println("INICIANDO SISTEMA SCADA E O SISTEMA DE SEGURANÇA");
 
   // Inicializa Hardware dos Sensores
   sensors.begin();
@@ -64,7 +68,8 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("\n--- Nova leitura iniciando ---");
+  Serial.println("\nNova leitura iniciando e sistema de segurança alimentado");
+  dog.alimentar();
 
   for(int i = 0; i < 6; i++) {
     

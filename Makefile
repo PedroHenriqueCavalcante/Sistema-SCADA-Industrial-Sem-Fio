@@ -1,43 +1,56 @@
-# Makefile para automação do Projeto SCADA
-# Autor: Você
+# Makefile Multi-Placas (Uno e ESP32)
 
-#Compilar apenas (pra ver se tem erro)
-build:
-	pio run
-
-#Enviar para a placa (Upload)
-upload:
-	pio run --target upload
-
-#Limpar a sujeira (Clean)
+# --- LIMPEZA DE ARQUIVOS (No Computador) ---
 clean:
 	pio run --target clean
 
-#Monitor Serial
-monitor:
-	pio device monitor
+#----------------------------------------------- COMANDOS PARA O ARDUINO UNO ----------------------------------------------------------------------------
 
-#Compila, Envia e já abre o Monitor
-run:
-	pio run --target upload && pio device monitor
+# Grava e abre o Monitor
+run_uno:
+	pio run -e uno --target upload && pio device monitor -e uno
 
-#Apagar a memória da placa (Erase Flash)
-erase:
-	pio run --target erase
+# Só Grava
+upload_uno:
+	pio run -e uno --target upload
 
-#RESET TOTAL: Limpa PC, Zera Placa, Grava e Monitora
-tudo:
-	pio run --target clean && pio run --target erase && pio run --target upload && pio device monitor
+# Só Monitora
+monitor_uno:
+	pio device monitor -e uno
 
-# 7. Menu de ajuda (se você digitar apenas 'make')
+# APAGA A MEMÓRIA FLASH (Zera o Arduino)
+erase_uno:
+	pio run -e uno --target erase
+
+#----------------------------------------------- COMANDOS PARA O ESP8266 ---------------------------------------------------------------------------------
+
+# Grava e abre o Monitor
+run_esp:
+	pio run -e esp8266 --target upload && pio device monitor -e esp8266
+
+# Só Grava
+upload_esp:
+	pio run -e esp8266 --target upload
+
+# Só Monitora
+monitor_esp:
+	pio device monitor -e esp8266
+
+# APAGA A MEMÓRIA FLASH (Zera o ESP8266)
+erase_esp:
+	pio run -e esp8266 --target erase
+
+# ======================================================
+# MENU DE AJUDA
+# ======================================================
 help:
 	@echo "------------------------------------------------"
 	@echo "COMANDOS DISPONIVEIS:"
-	@echo "  make build    -> Compila o codigo"
-	@echo "  make upload   -> Grava na placa"
-	@echo "  make monitor  -> Abre o Serial Monitor"
-	@echo "  make run      -> Grava e abre o Monitor (Recomendado)"
-	@echo "  make erase    -> Apaga toda a memoria da placa"
-	@echo "  make clean    -> Limpa arquivos temporarios"
-	@echo "  make tudo     -> Reset total: Limpa PC, Zera Placa, Grava e Monitora"
+	@echo "  make run_uno    -> Grava e Monitora o ARDUINO"
+	@echo "  make erase_uno  -> Apaga a memoria do ARDUINO"
+	@echo ""
+	@echo "  make run_esp    -> Grava e Monitora o ESP8266"
+	@echo "  make erase_esp  -> Apaga a memoria do ESP8266"
+	@echo ""
+	@echo "  make clean      -> Limpa arquivos temporarios do PC"
 	@echo "------------------------------------------------"
