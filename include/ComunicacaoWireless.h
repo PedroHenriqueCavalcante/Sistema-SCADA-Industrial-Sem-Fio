@@ -6,45 +6,71 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
-
-struct PacoteDados { //Scruct que vai ser enviada para o ESP8266
-    char idSensor[15]; // Nome do sensor (ex: "Temp_Interna")
-    float valor;       // O valor lido (ex: 45.5)
-    char unidade[5];   // Unidade (ex: "C", "RPM")
+// =========================================================
+// 1. O CONTRATO (Estrutura compartilhada por ambas as placas)
+// =========================================================
+struct PacoteDados { 
+    char idSensor[16]; 
+    float valor;       
+    char unidade[4];   
 };
 
+// =========================================================
+// 2. MÁQUINA DO TRANSMISSOR (Para o Arduino Uno)
+// =========================================================
 class RadioTransmissor {
     private:
-        RF24 radio; // Objeto da biblioteca oficial
-        const uint64_t enderecoPipe = 0x1234567890LL; // Endereço de envio
+        RF24 radio; 
+        const uint64_t enderecoPipe = 0x1234567890LL; 
 
     public:
+        RadioTransmissor(int pinCE, int pinCSN) : radio(pinCE, pinCSN) {}
 
-        RadioTransmissor(int pinCE, int pinCSN);
-        void begin();
-        bool enviar(PacoteDados dados);
+        void begin() {
+            radio.begin(); 
+            radio.setAutoAck(false); 
+            radio.setChannel(115); 
+            radio.setDataRate(RF24_250KBPS);
+            radio.setPALevel(RF24_PA_LOW); 
+            radio.openWritingPipe(enderecoPipe); 
+            radio.stopListening(); 
+        }
+
+        bool enviar(PacoteDados dados) {
+            return radio.write(&dados, sizeof(PacoteDados)); 
+        }
 };
 
-RadioTransmissor::RadioTransmissor(int pinCE, int pinCSN):radio(pinCE, pinCSN) { // Construtor: Inicializa o objeto RF24 com os pinos CE e CSN
+// =========================================================
+// 3. MÁQUINA DO RECEPTOR (Para o ESP32)
+// =========================================================
+class RadioReceptor {
+    private:
+        RF24 radio; 
+        const uint64_t enderecoPipe = 0x1234567890LL; 
 
-}
+    public:
+        RadioReceptor(int pinCE, int pinCSN) : radio(pinCE, pinCSN) {}
 
-void RadioTransmissor::begin() {
-
-    radio.begin(); 
-    radio.setChannel(5); 
-    radio.setDataRate(RF24_2MBPS);
-    radio.setPALevel(RF24_PA_HIGH);
-    
-    radio.openWritingPipe(enderecoPipe); // Abre o tubo para escrita (Tx)
-    
-    radio.stopListening(); // O transmissor não ouve, ele só fala
-}
-
-bool RadioTransmissor::enviar(PacoteDados dados) {
+        bool begin() {
+            if (!radio.begin()) return false;
             
-    return radio.write(&dados, sizeof(PacoteDados)); // Retorna 'true' se o envio foi recebido com sucesso (ACK)
+            radio.setAutoAck(false); 
+            radio.setChannel(115); 
+            radio.setDataRate(RF24_250KBPS);
+            radio.setPALevel(RF24_PA_LOW); 
+            radio.openReadingPipe(1, enderecoPipe); 
+            radio.startListening(); 
+            return true;
+        }
 
-}
+        bool available() {
+            return radio.available();
+        }
+
+        void receber(PacoteDados &dados) {
+            radio.read(&dados, sizeof(PacoteDados));
+        }
+};
 
 #endif
