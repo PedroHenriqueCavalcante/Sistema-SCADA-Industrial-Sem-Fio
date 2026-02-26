@@ -132,7 +132,7 @@ void GerenciadorDeTelas::desenharOLED() {
     oled.print(" L2:"); oled.print(luz2); 
     
     oled.setCursor(0, 10); //Um pouco mais pra baixo
-    oled.print("Interna: "); oled.print(temperaturaAmbiente, 1); oled.print(" C");
+    oled.print("Externa: "); oled.print(temperaturaAmbiente, 1); oled.print(" C");
 
     //Parte do gráfico que fica mais para baixo
     //Desenha as linhas conectando os pontos do array

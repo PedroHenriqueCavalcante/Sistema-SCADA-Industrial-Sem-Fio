@@ -42,8 +42,8 @@ void setup() {
   Serial.println("OK! Rádio em UDP.");
 
   listaSensores[0] = new SensorDHT("Umidade_Sala", "Externo", &dht);
-  listaSensores[1] = new DS18B20("Temp_Interna", "Interno", &sensors, enderecoSensorTemp1);
-  listaSensores[2] = new DS18B20("Temp_Externa", "Externo", &sensors, enderecoSensorTemp2);
+  listaSensores[1] = new DS18B20("Temp_Interna", "Interno", &sensors, enderecoSensorTemp2);
+  listaSensores[2] = new DS18B20("Temp_Externa", "Externo", &sensors, enderecoSensorTemp1);
   listaSensores[3] = new LDR("Luz_Ambiente", "Externo", PINO_LDR_1);
   listaSensores[4] = new LDR("Luz_Interna", "Interno", PINO_LDR_2);
 }
