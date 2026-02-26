@@ -3,7 +3,6 @@
 #include "ComunicacaoWireless.h"
 #include "Seguranca.h"
 
-#define PINO_OPTICO    2  //TCRT5000
 #define PINO_DHT       3  //Sensor DHT
 #define PINO_ONE_WIRE  5  //Fio de dados dos DS18B20
 #define PINO_LDR_1     A0 //LDR 1
@@ -29,7 +28,7 @@ DeviceAddress enderecoSensorTemp1 = {0x28, 0x81, 0x40, 0x49, 0xF6, 0xF0, 0x3C, 0
 DeviceAddress enderecoSensorTemp2 = {0x28, 0x95, 0x35, 0xE8, 0x0F, 0x00, 0x00, 0x18}; //Parece um transistor. Sensor interno
 
 //Array de ponteiros (Polimorfismo)
-Sensores* listaSensores[6]; 
+Sensores* listaSensores[5]; 
 
 void setup() {
   Serial.begin(9600); 
@@ -42,12 +41,11 @@ void setup() {
   meuRadio.begin();
   Serial.println("OK! Rádio em UDP.");
 
-  listaSensores[0] = new TCRT5000("Cooler", "Externo", PINO_OPTICO);
-  listaSensores[1] = new SensorDHT("Umidade_Sala", "Externo", &dht);
-  listaSensores[2] = new DS18B20("Temp_Interna", "Interno", &sensors, enderecoSensorTemp1);
-  listaSensores[3] = new DS18B20("Temp_Externa", "Externo", &sensors, enderecoSensorTemp2);
-  listaSensores[4] = new LDR("Luz_Ambiente", "Externo", PINO_LDR_1);
-  listaSensores[5] = new LDR("Luz_Interna", "Interno", PINO_LDR_2);
+  listaSensores[0] = new SensorDHT("Umidade_Sala", "Externo", &dht);
+  listaSensores[1] = new DS18B20("Temp_Interna", "Interno", &sensors, enderecoSensorTemp1);
+  listaSensores[2] = new DS18B20("Temp_Externa", "Externo", &sensors, enderecoSensorTemp2);
+  listaSensores[3] = new LDR("Luz_Ambiente", "Externo", PINO_LDR_1);
+  listaSensores[4] = new LDR("Luz_Interna", "Interno", PINO_LDR_2);
 }
 
 void loop() {
@@ -59,7 +57,7 @@ void loop() {
     Serial.println("\nNova leitura iniciando...");
     dog.alimentar();
 
-    for(int i = 0; i < 6; i++) {
+    for(int i = 0; i < 5; i++) {
       
       listaSensores[i]->ler(); 
       Serial.println(listaSensores[i]->getRelatorio()); //Debug no monitor serial
