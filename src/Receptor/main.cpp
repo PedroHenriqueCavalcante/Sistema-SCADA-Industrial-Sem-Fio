@@ -35,7 +35,6 @@ RTC_DS3231 rtc;
 float temp_interna;
 float temp_externa;
 float umidade;
-float cooler_rpm;
 float luz_ambiente;
 float luz_interna;
 String timestamp_nuvem;
@@ -49,10 +48,8 @@ void initProperties() {
   ArduinoCloud.addProperty(temp_interna, Permission::Read);
   ArduinoCloud.addProperty(temp_externa, Permission::Read);
   ArduinoCloud.addProperty(umidade, Permission::Read);
-  ArduinoCloud.addProperty(cooler_rpm, Permission::Read);
   ArduinoCloud.addProperty(luz_ambiente, Permission::Read);
   ArduinoCloud.addProperty(luz_interna, Permission::Read);
-  ArduinoCloud.addProperty(timestamp_nuvem, Permission::Read);
 }
 
 void setup() {
@@ -130,7 +127,6 @@ void loop() {
     if (id == "Temp_Interna") temp_interna = valor;
     else if (id == "Temp_Externa") temp_externa = valor;
     else if (id == "Umidade_Sala") umidade = valor;
-    else if (id == "Cooler") cooler_rpm = valor;
     else if (id == "Luz_Ambiente") luz_ambiente = valor;
     else if (id == "Luz_Interna") luz_interna = valor;
   }

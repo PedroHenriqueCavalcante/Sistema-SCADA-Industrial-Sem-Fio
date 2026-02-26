@@ -70,11 +70,11 @@ void GerenciadorDeTelas::iniciar() {
 
 void GerenciadorDeTelas::atualizar(String id, float valor) {
     
-    if (id == "Temp_Interna") temperaturaAmbiente = valor; //Atualiza a memória interna baseada no ID que chegou
+    if (id == "Temp_Externa") temperaturaExterna = valor; //Atualiza a memória interna baseada no ID que chegou
     else if (id == "Umidade_Sala") umidade = (int)valor;
-    else if (id == "Temp_Externa") {
-        temperaturaExterna = valor;
-        atualizarGrafico(temperaturaExterna); // Só anda o gráfico quando chega a temperatura externa
+    else if (id == "Temp_Interna") {
+        temperaturaAmbiente = valor;
+        atualizarGrafico(temperaturaAmbiente); // Só anda o gráfico quando chega a temperatura interna
     }
     else if (id == "Luz_Ambiente") luz1 = (int)valor;
     else if (id == "Luz_Interna") luz2 = (int)valor;
@@ -91,8 +91,8 @@ void GerenciadorDeTelas::atualizarGrafico(float valorTemp) {
     }
 
     // Mapeia a temperatura para a altura do gráfico (pixels)
-    // Exemplo: 20°C = baixo (63), 40°C = alto (16)
-    int ponto = map((int)valorTemp, 20, 40, 63, 16);
+    // Diminuímos a escala (ex: 20 a 35°C) para que pequenas mudanças fiquem mais visíveis
+    int ponto = map((int)(valorTemp * 10), 200, 350, 63, 16);
     
     // Limita para não sair da tela
     if(ponto < 16) ponto = 16; 
@@ -111,8 +111,8 @@ void GerenciadorDeTelas::desenharLCD() {
     lcd.print("SCADA Monitor   ");
 
     lcd.setCursor(0, 1);
-    lcd.print("Amb:"); 
-    lcd.print(temperaturaAmbiente, 1);
+    lcd.print("Int:"); 
+    lcd.print(temperaturaExterna, 1);
     
     lcd.print(" U:");
     lcd.print(umidade);
@@ -132,12 +132,14 @@ void GerenciadorDeTelas::desenharOLED() {
     oled.print(" L2:"); oled.print(luz2); 
     
     oled.setCursor(0, 10); //Um pouco mais pra baixo
-    oled.print("Motor: "); oled.print(temperaturaExterna, 1); oled.print(" C");
+    oled.print("Interna: "); oled.print(temperaturaAmbiente, 1); oled.print(" C");
 
     //Parte do gráfico que fica mais para baixo
     //Desenha as linhas conectando os pontos do array
     for(int i=0; i<127; i++) {
+        // Linha principal do gráfico (desenhada duas vezes para ficar um pouco mais grossa, mas sem preencher a tela toda)
         oled.drawLine(i, grafico[i], i+1, grafico[i+1], SSD1306_WHITE);
+        oled.drawLine(i, grafico[i]+1, i+1, grafico[i+1]+1, SSD1306_WHITE);
     }
     
     oled.display();

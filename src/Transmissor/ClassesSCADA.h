@@ -99,43 +99,7 @@ void LDR::ler() {
     // Converte 0-1023 (analógico) para 0-100% (porcentagem)
     // LDR: Quanto mais luz, menor a resistência (depende do circuito)
     // Assumindo pull-down:
-    leitura = map(valorBruto, 0, 1023, 0, 100);
-}
-
-//---------------------------------------------TCRT5000---------------------------------------------------------------------------------------------------
-
-class TCRT5000 : public Sensores {
-    private:
-        int pinoDigital;
-        
-    public:
-    
-        TCRT5000(String _id, String _loc, int _pino);
-        void ler() override;
-};
-
-//Método construtor da classe
-TCRT5000::TCRT5000(String _id, String _loc, int _pino):Sensores(_id, _loc, "RPM") {
-    pinoDigital = _pino;
-    pinMode(pinoDigital, INPUT);
-}
-
-//Método override de leitura
-void TCRT5000::ler() {
-
-    // Lê o pulso atual. pulseIn espera o pino ir de LOW para HIGH. Timeout de 100ms para não travar o Arduino
-    unsigned long duracao = pulseIn(pinoDigital, HIGH, 100000); 
-    
-    if (duracao > 0) {
-        // Conversão básica de tempo de pulso para RPM (aproximada)
-        // RPM = 60 segundos / tempo de uma volta (em segundos)
-        // Exemplo genérico (AJUSTAR DEPOIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)<<<-----------
-        leitura = 60000000.0 / (duracao * 2); // Multiplicador fictício
-    } 
-    
-    else {
-        leitura = 0; // Cooler parado
-    }
+    leitura = map(valorBruto, 300, 1023, 0, 100);
 }
 
 //---------------------------------------------DHT--------------------------------------------------------------------------------------------------------
