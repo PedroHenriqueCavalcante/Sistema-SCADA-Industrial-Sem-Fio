@@ -2,7 +2,7 @@
 #define SEGURANCA_H
 
 #include <Arduino.h>
-#include <avr/wdt.h> // Biblioteca nativa do Watchdog para Arduino UNO
+#include <avr/wdt.h>
 
 class Watchdog {
     public:
@@ -12,8 +12,8 @@ class Watchdog {
 };
 
 
-void Watchdog::iniciar() { //Inicia o Cão de Guarda
-    wdt_enable(WDTO_8S); 
+void Watchdog::iniciar() { 
+    wdt_enable(WDTO_8S); //8 segundos. Se o Arduino não for alimentado dentro desse tempo, ele reinicia
 }
 
 void Watchdog::alimentar() { //Reinicia a contagem dos 8 segundos
@@ -21,8 +21,8 @@ void Watchdog::alimentar() { //Reinicia a contagem dos 8 segundos
 }
 
 void Watchdog::forcarReinicializacao() { //Força um reset via software da placa
-    wdt_enable(WDTO_15MS); // Define tempo mínimo de 15ms para reinicialização
-    while(true) {} // Trava propositalmente até reiniciar
+    wdt_enable(WDTO_15MS); //Define tempo mínimo de 15ms para reinicialização
+    while(true) {} //Trava propositalmente até reiniciar
 }
 
 #endif

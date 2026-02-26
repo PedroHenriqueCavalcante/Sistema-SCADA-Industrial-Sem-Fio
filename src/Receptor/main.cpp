@@ -1,138 +1,137 @@
 #include <Arduino.h>
+#include <WiFi.h>
 #include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
-#ifdef CD
+#include <Wire.h>
+#include <RTClib.h>
+#include "ComunicacaoWireless.h"
+
+#ifdef CD //Isso aqui é pra evitar conflito com a definição de CD entre as bibliotecas. Tinha dado erro antes
 #undef CD
 #endif
-#include "ComunicacaoWireless.h"
+
 #include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 #include "Telas.h"
 #include "Armazenamento.h"
 
+//SSID e senha do hotspot do celular de Pedro pra compartilhar na hora da apresentação
+const char SSID[] = "Pedro";   
+const char PASS[] = "senha123";   
 
-//CONFIGURAÇÕES DO WI-FI
-const char SSID[]     = "NOME_DO_SEU_WIFI";     // <--- MUDE AQUI
-const char PASS[]     = "SENHA_DO_SEU_WIFI";     // <--- MUDE AQUI
+//Configurações do WEMOS D1 R32 ESP32 que foi cadastrado no Arduino Cloud. NÃO MUDAR ISSO DAQUI!!!!
+const char DEVICE_LOGIN_NAME[]  = "9b729cba-2ed7-4949-b8cb-a75527f918f1";
+const char DEVICE_KEY[]         = "2JvzBjP4@mEfTzTgHuOQpe?Rp";
 
-//Configurações do Arduino Cloud
-const char DEVICE_LOGIN_NAME[]  = "COPIE_DO_SITE_DEVICE_ID";
-const char DEVICE_KEY[]         = "COPIE_DO_SITE_SECRET_KEY";
+#define CE_PIN 4  
+#define CSN_PIN 5 
+#define SD_CS_PIN 26 
 
-
-// CE no D4 (GPIO2) -> Para não brigar com o I2C (que usa D2)
-#define CE_PIN 2  
-// CSN no D8 (GPIO15) -> Padrão SPI
-#define CSN_PIN 15 
-
-// --- 2. Cartão SD (SPI) ---
-// CS no D0 (GPIO16) -> Pino exclusivo para o Cartão
-#define SD_CS_PIN 16
-
-RF24 radio(CE_PIN, CSN_PIN);
-const uint64_t enderecoPipe = 0x1234567890LL;
-
+RadioReceptor receptor(CE_PIN, CSN_PIN);
 GerenciadorDeTelas telas;
 GerenciadorDeArmazenamento sdCard(SD_CS_PIN);
+RTC_DS3231 rtc;
 
-//O nome tem que estar igual no Arduino Cloud
+//Variáveis espelhadas no Arduino Cloud. Tem que ser IDÊNTICO ao Arduino Cloud, se não, não funciona
 float temp_interna;
 float temp_externa;
 float umidade;
 float cooler_rpm;
 float luz_ambiente;
 float luz_interna;
+String timestamp_nuvem;
 
-//Função necessária para conectar (Callback)
-WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS);
+WiFiConnectionHandler ArduinoIoTPreferredConnection(SSID, PASS); //Isso aqui é pra conectar ao Wi-Fi
 
-//Função de configuração das variáveis (boilerplate do Arduino Cloud)
 void initProperties() {
   ArduinoCloud.setBoardId(DEVICE_LOGIN_NAME);
   ArduinoCloud.setSecretDeviceKey(DEVICE_KEY);
 
-  // Mapeando as variáveis do código para a nuvem
-  ArduinoCloud.addProperty(temp_interna, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(temp_externa, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(umidade, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(cooler_rpm, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(luz_ambiente, READ, ON_CHANGE, NULL);
-  ArduinoCloud.addProperty(luz_interna, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(temp_interna, Permission::Read);
+  ArduinoCloud.addProperty(temp_externa, Permission::Read);
+  ArduinoCloud.addProperty(umidade, Permission::Read);
+  ArduinoCloud.addProperty(cooler_rpm, Permission::Read);
+  ArduinoCloud.addProperty(luz_ambiente, Permission::Read);
+  ArduinoCloud.addProperty(luz_interna, Permission::Read);
+  ArduinoCloud.addProperty(timestamp_nuvem, Permission::Read);
 }
 
 void setup() {
+  
   Serial.begin(115200);
   delay(1500);
-  Serial.println("\nIniciando o Receptor SCADA");
+  Serial.println("Iniciando o receptor do sistema SCADA");
+
+  SPI.begin(18, 19, 23);
+  Wire.begin();
 
   telas.iniciar();
   sdCard.iniciar();
 
-  // A. Inicia Arduino Cloud
+  Serial.print("Iniciando Módulo RTC... ");
+
+  if (!rtc.begin()) {
+    Serial.println("FALHA! RTC nao encontrado no barramento I2C.");
+  } 
+  
+  else {
+    Serial.println("OK!");
+    
+    if (rtc.lostPower()) { //Se a gente der o azar de o RTC perder a energia da bateria, ele ajusta com a hora da compilação:
+      Serial.println("RTC perdeu energia, ajustando a hora");
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    }
+  }
+
+  Serial.println("Conectando ao Arduino Cloud e Wi-Fi...");
+
   initProperties();
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   setDebugMessageLevel(2);
-  ArduinoCloud.printDebugInfo();
+  
+  Serial.print("Iniciando NRF24L01... ");
 
-  Serial.print("Iniciando Radio... ");
-  if (!radio.begin()) {
-    Serial.println("ERRO: Radio nao encontrado!");
-    while(1); // Trava se não achar o rádio
+  if (!receptor.begin()) {
+    Serial.println("ERRO CRITICO: Radio nao encontrado!");
+  } 
+  
+  else {
+    Serial.println("Radio OK! Rádio ouvindo!");
   }
-  
-  radio.setChannel(5);
-  radio.setDataRate(RF24_2MBPS);
-  radio.setPALevel(RF24_PA_HIGH);
-  radio.openReadingPipe(1, enderecoPipe);
-  radio.startListening();
-  
-  Serial.println("Radio OK! Aguardando dados...");
 }
 
 void loop() {
 
-  ArduinoCloud.update(); //Mantém a conexão com a nuvem viva
-
+  ArduinoCloud.update(); 
   
-  if (radio.available()) { //Verifica se chegou dado pelo Rádio
+  if (receptor.available()) { 
     PacoteDados pacote;
-    radio.read(&pacote, sizeof(PacoteDados));
+    receptor.receber(pacote);
 
-    String id = String(pacote.idSensor);//Converte o char array para String para facilitar comparação
+    String id = String(pacote.idSensor);
     float valor = pacote.valor;
 
-    Serial.print("Recebido [" + id + "]: " + String(valor));
-
-    telas.atualizar(id, valor);
-    sdCard.salvarDado(id, valor);
+    DateTime agora = rtc.now(); //Criação do timestamp
+    char bufferData[22];
     
-    if (id == "Temp_Interna") {
-        temp_interna = valor;
-        Serial.println(" -> Atualizado Cloud: Temp Interna");
-    }
-    else if (id == "Temp_Externa") {
-        temp_externa = valor;
-        Serial.println(" -> Atualizado Cloud: Temp Externa");
-    }
-    else if (id == "Umidade_Sala") {
-        umidade = valor;
-        Serial.println(" -> Atualizado Cloud: Umidade");
-    }
-    else if (id == "Cooler") {
-        cooler_rpm = valor;
-        Serial.println(" -> Atualizado Cloud: RPM");
-    }
-    else if (id == "Luz_Ambiente") {
-        luz_ambiente = valor;
-        Serial.println(" -> Atualizado Cloud: Luz Amb");
-    }
-    else if (id == "Luz_Interna") {
-        luz_interna = valor;
-        Serial.println(" -> Atualizado Cloud: Luz Int");
-    }
-    else {
-        Serial.println(" -> ID Desconhecido!");
-    }
+    sprintf(bufferData, "%02d/%02d/%04d %02d:%02d:%02d", //Formata no padrão BR legível: DD/MM/YYYY HH:MM:SS
+            agora.day(), agora.month(), agora.year(), 
+            agora.hour(), agora.minute(), agora.second());
+    
+    String strDataHora = String(bufferData);
+
+    Serial.print("[" + strDataHora + "] " + id + ": " + String(valor));
+
+    //Atualiza Nuvem e periféricos
+    timestamp_nuvem = strDataHora; 
+    telas.atualizar(id, valor);
+    sdCard.salvarDado(strDataHora, id, valor); 
+    
+    //Roteador de variáveis Cloud
+    if (id == "Temp_Interna") temp_interna = valor;
+    else if (id == "Temp_Externa") temp_externa = valor;
+    else if (id == "Umidade_Sala") umidade = valor;
+    else if (id == "Cooler") cooler_rpm = valor;
+    else if (id == "Luz_Ambiente") luz_ambiente = valor;
+    else if (id == "Luz_Interna") luz_interna = valor;
   }
 }
