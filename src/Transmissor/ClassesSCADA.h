@@ -25,7 +25,7 @@ class Sensores {
             //Em branco apenas para ser sobrescrito pelas subclasses
         }
 
-        // Método virtual: Pode ser sobrescrito (pelo DHT, por exemplo)
+        //Método virtual: Pode ser sobrescrito (pelo DHT, por exemplo) para que a gente use polimorfismo
         virtual String getRelatorio() {
             return "[" + id + "] " + localizacao + ": " + String(leitura) + " " + unidade;
         }
@@ -43,8 +43,8 @@ class Sensores {
 
 class DS18B20:public Sensores {
     private:
-        DallasTemperature* _dallas; // Ponteiro para o controlador
-        DeviceAddress _endereco;    // Endereço específico deste sensor
+        DallasTemperature* _dallas; //Ponteiro para o controlador
+        DeviceAddress _endereco;    //Endereço específico deste sensor
 
     public:
 
@@ -57,7 +57,7 @@ class DS18B20:public Sensores {
 DS18B20::DS18B20(String _id, String _loc, DallasTemperature* dallas, DeviceAddress enderecoFisico):Sensores(_id, _loc, "C") {
 
     _dallas = dallas;
-    memcpy(_endereco, enderecoFisico, 8); // Copia o endereço recebido para a variável interna
+    memcpy(_endereco, enderecoFisico, 8); //Copia o endereço recebido para a variável interna
 }
 
 //Método override de leitura
@@ -65,7 +65,7 @@ void DS18B20::ler() {
     _dallas->requestTemperaturesByAddress(_endereco);
     float tempC = _dallas->getTempC(_endereco);
 
-    if(tempC == DEVICE_DISCONNECTED_C) { // Verifica se houve erro de leitura (-127)
+    if(tempC == DEVICE_DISCONNECTED_C) { //Verifica se houve erro de leitura (-127)
         Serial.println("Erro: Sensor " + id + " desconectado!");
     } 
     
@@ -109,7 +109,7 @@ class TCRT5000 : public Sensores {
         int pinoDigital;
         
     public:
-
+    
         TCRT5000(String _id, String _loc, int _pino);
         void ler() override;
 };
@@ -122,9 +122,8 @@ TCRT5000::TCRT5000(String _id, String _loc, int _pino):Sensores(_id, _loc, "RPM"
 
 //Método override de leitura
 void TCRT5000::ler() {
-    // Lógica Simplificada para TP (sem interrupção):
-    // Lê o pulso atual. pulseIn espera o pino ir de LOW para HIGH.
-    // Timeout de 100ms para não travar o Arduino
+
+    // Lê o pulso atual. pulseIn espera o pino ir de LOW para HIGH. Timeout de 100ms para não travar o Arduino
     unsigned long duracao = pulseIn(pinoDigital, HIGH, 100000); 
     
     if (duracao > 0) {
@@ -132,7 +131,9 @@ void TCRT5000::ler() {
         // RPM = 60 segundos / tempo de uma volta (em segundos)
         // Exemplo genérico (AJUSTAR DEPOIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)<<<-----------
         leitura = 60000000.0 / (duracao * 2); // Multiplicador fictício
-    } else {
+    } 
+    
+    else {
         leitura = 0; // Cooler parado
     }
 }
@@ -141,15 +142,14 @@ void TCRT5000::ler() {
 
 class SensorDHT:public Sensores {
     private:
-        DHT* _dht; // Ponteiro para o objeto da biblioteca
+        DHT* _dht; //Ponteiro para o objeto da biblioteca
         float umidade; 
 
     public:
         
-        SensorDHT(String _id, String _loc, DHT* dhtObj); // Recebe o objeto DHT já configurado no main
+        SensorDHT(String _id, String _loc, DHT* dhtObj); //Recebe o objeto DHT já configurado no main
         void ler() override;
         
-        // <<< AQUI ESTÁ A MUDANÇA: Declaramos que vamos sobrescrever o relatório >>>
         String getRelatorio() override; 
 };
 
@@ -160,24 +160,21 @@ SensorDHT::SensorDHT(String _id, String _loc, DHT* dhtObj):Sensores(_id, _loc, "
 }
 
 void SensorDHT::ler() {
-    // O DHT lê devagar, ideal é não chamar toda hora
+
     float t = _dht->readTemperature();
     float h = _dht->readHumidity();
     
     if (isnan(t) || isnan(h)) { 
         Serial.println("Falha ao ler DHT!");
-    } else {
-        // CORREÇÃO LÓGICA:
-        // Como o rádio só envia a variável 'leitura', salvamos a UMIDADE (h) nela.
-        // A temperatura (t) guardamos na variável auxiliar 'umidade' só para o relatório.
+    } 
+    
+    else {
         leitura = h; 
         umidade = t; 
     }
 }
 
 String SensorDHT::getRelatorio() { 
-    // MUDANÇA: Ajustei a ordem para imprimir certo, já que invertemos as variáveis acima
-    // Agora: 'umidade' guarda a Temp (C) e 'leitura' guarda a Umidade (%)
     return "[" + id + "] " + localizacao + ": " + String(umidade) + "C / " + String(leitura) + "%";
 }
 

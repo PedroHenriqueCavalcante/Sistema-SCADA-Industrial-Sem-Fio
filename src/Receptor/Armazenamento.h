@@ -11,7 +11,7 @@ class GerenciadorDeArmazenamento {
         uint8_t pinoCS;
         const char* nomeArquivo;
         bool cartaoPronto;
-        SPIClass spiSD; // Criando uma via SPI exclusiva para o SD!
+        SPIClass spiSD; //Cria uma via SPI exclusiva para o SD pra não interferir no rádio
 
     public:
         GerenciadorDeArmazenamento(uint8_t pino);
@@ -26,14 +26,13 @@ GerenciadorDeArmazenamento::GerenciadorDeArmazenamento(uint8_t pino) : spiSD(HSP
 }
 
 void GerenciadorDeArmazenamento::iniciar() {
-    // Inicia a via secundária (HSPI) nos pinos: SCK=14, MISO=12, MOSI=13, SS=26
+    //Inicia a via secundária nos pinos: SCK=14, MISO=12, MOSI=13, SS=26
     spiSD.begin(14, 12, 13, pinoCS);
 
-    Serial.print(F("Iniciando Cartao SD (Via Isolada)... "));
+    Serial.print(F("Iniciando Cartao SD"));
     
-    // Passamos a nossa via spiSD exclusiva para a biblioteca do SD
     if (!SD.begin(pinoCS, spiSD)) {
-        Serial.println(F("FALHA! Verifique fios do HSPI."));
+        Serial.println(F("FALHA! Verifique fios do SPI do cartao."));
         cartaoPronto = false;
         return;
     }
