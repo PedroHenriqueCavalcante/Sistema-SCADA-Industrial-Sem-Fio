@@ -6,18 +6,12 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
-// =========================================================
-// 1. O CONTRATO (Estrutura compartilhada por ambas as placas)
-// =========================================================
 struct PacoteDados { 
     char idSensor[16]; 
     float valor;       
     char unidade[4];   
 };
 
-// =========================================================
-// 2. MÁQUINA DO TRANSMISSOR (Para o Arduino Uno)
-// =========================================================
 class RadioTransmissor {
     private:
         RF24 radio; 
@@ -41,9 +35,6 @@ class RadioTransmissor {
         }
 };
 
-// =========================================================
-// 3. MÁQUINA DO RECEPTOR (Para o ESP32)
-// =========================================================
 class RadioReceptor {
     private:
         RF24 radio; 
