@@ -70,12 +70,12 @@ void GerenciadorDeTelas::iniciar() {
 
 void GerenciadorDeTelas::atualizar(String id, float valor) {
     
-    if (id == "Temp_Externa") temperaturaExterna = valor; //Atualiza a memória interna baseada no ID que chegou
-    else if (id == "Umidade_Sala") umidade = (int)valor;
-    else if (id == "Temp_Interna") {
-        temperaturaAmbiente = valor;
-        atualizarGrafico(temperaturaAmbiente); // Só anda o gráfico quando chega a temperatura interna
+    if (id == "Temp_Externa") {
+        temperaturaExterna = valor;
+        atualizarGrafico(temperaturaExterna); // Só anda o gráfico quando chega a temperatura externa
     }
+    else if (id == "Umidade_Sala") umidade = (int)valor;
+    else if (id == "Temp_Interna") temperaturaAmbiente = valor; //Atualiza a memória interna baseada no ID que chegou
     else if (id == "Luz_Ambiente") luz1 = (int)valor;
     else if (id == "Luz_Interna") luz2 = (int)valor;
 
@@ -112,7 +112,7 @@ void GerenciadorDeTelas::desenharLCD() {
 
     lcd.setCursor(0, 1);
     lcd.print("Int:"); 
-    lcd.print(temperaturaExterna, 1);
+    lcd.print(temperaturaAmbiente, 1);
     
     lcd.print(" U:");
     lcd.print(umidade);
@@ -132,7 +132,7 @@ void GerenciadorDeTelas::desenharOLED() {
     oled.print(" L2:"); oled.print(luz2); 
     
     oled.setCursor(0, 10); //Um pouco mais pra baixo
-    oled.print("Externa: "); oled.print(temperaturaAmbiente, 1); oled.print(" C");
+    oled.print("Externa: "); oled.print(temperaturaExterna, 1); oled.print(" C");
 
     //Parte do gráfico que fica mais para baixo
     //Desenha as linhas conectando os pontos do array
