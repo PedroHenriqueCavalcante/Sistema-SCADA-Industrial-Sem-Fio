@@ -100,6 +100,15 @@ void LDR::ler() {
     // LDR: Quanto mais luz, menor a resistência (depende do circuito)
     // Assumindo pull-down:
     leitura = map(valorBruto, 300, 1023, 0, 100);
+    
+    // Se o valor mapeado for negativo, trava em 0
+    if (leitura < 0) {
+        leitura = 0;
+    }
+    // Opcional: se passar de 100%, trava em 100
+    if (leitura > 100) {
+        leitura = 100;
+    }
 }
 
 //---------------------------------------------DHT--------------------------------------------------------------------------------------------------------
