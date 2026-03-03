@@ -1,10 +1,8 @@
 # Sistema SCADA Industrial Sem Fio
 
-O roteiro que deve ser seguido para o nosso projeto está neste READ.ME. Podemos ajustar a qualquer momento.
-
 ## Objetivo
 
-O objetivo do nosso sistema é monitorar remotamente o funcionamento de um motor industrial, garantindo integridade de dados e detecção automática de falhas de comunicação (Fail-Safe).
+O objetivo do nosso sistema é monitorar remotamente o funcionamento de uma sala, garantindo integridade de dados e detecção automática de falhas de comunicação (Fail-Safe).
 
 ---
 
@@ -12,7 +10,7 @@ O objetivo do nosso sistema é monitorar remotamente o funcionamento de um motor
 
 Teremos um Arduino UNO R3 e um ESP32, que se comunicarão via nRF24L01 (comunicação de rádio sem fio).
 
-O arduino lerá vários sensores que estarão dentro e fora de uma caixa (talvez de isopor) e enviará para o ESP32.
+O arduino lerá vários sensores que estarão dentro e fora de uma caixa (que simulará a sala) e de sensores que estarão fora dela (que simulará o ambiente) e enviará para o ESP32.
 Daí, o ESP32 lerá os dados recebidos sem fio em formato de struct, os tratará, se for necessário, e enviará para o Arduino CLoud, que é um sistema de dashboard interativo que fica atualizando os dados na tela em tempo real. 
 
 ## Do que precisamos?
@@ -25,12 +23,9 @@ Pedro Henrique tem tudo, mas o que pensamos até agora é:
 - 1 display OLED 0,96"
 - 1 LCD 16x2
 - 2 sensores de temperatura DS18B20
-- 1 sensor óptico
 - 2 fotosensores LDR
-- 1 buzzer passivo 5V
 - 1 módulo para cartão microSD
 - 1 cartão microSD
-- LEDs
 - Resistores
 - Jumpers
 
@@ -49,10 +44,6 @@ Portanto, precisamos adicionar esses 4 primeiros no nosso código e a UML no nos
 ## Quem ficará responsável pelo o que?
 
 Para o código, quem tem experiência maior deve ficar na parte do desenvolvimento grosso e revisão do código dos demais. Todos vão participar da parte de código, mas eles serão revisado Por Pedro Henrique e Pedro Eugênio.
-
-OBS1.: Quem não quiser participar da parte do código e quiser ficar apenas com a parte do relatório e da montagem da caixa, avise no grupo. 
-
-OBS2.: Logicamente, a gente vai ter que produzir o relarório, então, todos devem colaborar, mas quem quiser ficar só com essa parte, deve se debruçar mais por ele (principalmente na parte de formatação de acordo com as regras ABNT e revisão do texto).
 
 ## Porque nosso projeto é bom?
 
